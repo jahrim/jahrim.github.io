@@ -41,7 +41,7 @@ p = "It seems that this page doesn't exist."
 portfolio = "project"
 
 [params.sidebar]
-backgroundImage = '/images/background.jpg' # header background image - default "/images/default_sidebar.jpg" - Photo by Tim Marshall on Unsplash
+backgroundImage = '' # ''/images/background.jpg' # header background image - default "/images/default_sidebar.jpg" - Photo by Tim Marshall on Unsplash
 gradientOverlay = '' # default: rgba(0,0,0,0.4),rgba(0,0,0,0.4)
 logo = "/images/jahrim-cesario-profile.jpg"
 [params.assets]
@@ -86,13 +86,6 @@ name = "Portfolio"
 title = "Portfolio"
 url = "/portfolio/"
 weight = -110
-
-[[menu.main]]
-identifier = "cv"
-name = "Curriculum Vitae"
-title = "Curriculum Vitae"
-url = "/cv/curriculum.pdf"
-weight = -100
 
 # [[menu.main]]
 # identifier = "blog"
