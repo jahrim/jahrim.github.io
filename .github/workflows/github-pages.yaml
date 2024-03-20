@@ -1,0 +1,50 @@
+name: Build and Deploy GitHub Pages
+on:
+  push:
+    paths-ignore:
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - 'LICENSE'
+      - '.github/workflows/github-pages.yml'
+  pull_request:
+  workflow_dispatch:
+permissions:
+  id-token: write
+  pages: write
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      # Download git repository and submodules
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+      # Install Hugo
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v2
+        with:
+          hugo-version: 'latest'
+          # extended: true
+      # Build website
+      - name: Build
+        run: hugo --minify
+      # Configure GitHub Pages
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      # Publish Website
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './public'
+      # Deploy Website
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}

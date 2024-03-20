@@ -1,0 +1,4 @@
+{{ $dateDiff := now.Sub (time (.Get "start")) }}
+{{ $yearDiff := div (div $dateDiff.Hours 24) 365 }}
+{{ $age := math.Floor $yearDiff }}
+{{ $age }}

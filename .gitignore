@@ -1,0 +1,5 @@
+.idea/*
+!.idea/codeStyles/*
+
+public/*
+.hugo_build.lock
