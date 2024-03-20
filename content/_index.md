@@ -11,4 +11,6 @@ I aspire to become a software engineer or a project manager. I'm also
 interested in teaching and research.
 
 This is my personal website. Here you can find more information [about me](/about)
-and [about my projects](/portfolio), or contact me to request my curriculum vitae.
+and [about my projects](/portfolio), or
+{{<email at="jahrim.gabriele.cesario@outlook.com" text="contact me">}} directly for
+any particular question.
