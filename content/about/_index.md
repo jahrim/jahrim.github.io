@@ -3,7 +3,7 @@ title: ABOUT
 description: Jahrim's bio
 ---
 
-Here is more about my life and personality.
+Here is more about my life and interests.
 
 ### Bio
 
@@ -79,51 +79,22 @@ project management knowledge for software solutions, but also an interest in
 teaching and research, which could lead me to continue my studies. In order to 
 decide on my future, I need to gather and evaluate my current opportunities.
 
-### Personality
-
-Some people might perceive me as fitting the stereotype of the diligent
-student, preferring solitude and dedicating fully on its academic or 
-professional career. This is probably true to some extent. However, I believe
-that my behavior is mostly a consequence of the level of commitment I put into
-what I do. I hold myself to high standards and strive to meet them
-consistently. 
-
-As a consequence of my commitment, I may occasionally appear socially 
-withdrawn. Throughout my life, I have experienced alternating periods of
-introversion and extroversion towards other people, and in both cases this
-aspect of me persisted. That is to say, I am not necessarily introverted, as a
-matter of fact, learning music and live performances made me more extroverted. 
-However, I do have a strong sense of individuality and independence.
-
-In my time at university, this strong sense of individuality led my to
-undertake many projects by myself, even a few that were supposed to be team
-projects. In doing so, I acquired skills across a large variety of development
-facets, attaining increased autonomy as a developer.
-
-Still, I had several chances to work in team projects, in which I believe I
-demonstrated good collaboration skills (e.g., proposing my ideas, accepting the
-ideas of others, leading towards certain directions, being led towards others),
-but also good leadership skills, encouraging the team towards a common
-objective. In particular, I believe that maintaining balance and trust within
-a team is key to success: a leader should provide good reasons to be trusted
-and fair opportunities for other team members to build trust within the team,
-supporting them in undertaking challenges during the development of a project.
-A fair leadership also requires good understanding of the team members' 
-needs and effective communication.
-
 ### Interests
 
-In my free time, apart from working on side projects, I enjoy playing the piano
-and the guitar. Sometimes I even dabble in music composition and improvisation,
-just for the fun of it. In the future, I would like to try the violin too, as
-each instrument has taught me a different perspective on music and trained my
-hearing in a different way.
+My main interests in Computer Science are programming languages and software
+engineering. In particular, I love designing domain specific languages with the
+goal of bringing domain experts near to the code, making programs and tests as
+declarative as possible. Additionally, I love designing distributed systems and
+interactions for complex services, involving heterogeneous devices.
+
+In my free time, apart from working on side projects, I enjoy playing the piano,
+the guitar or the violin, which I just started learning. Sometimes I even dabble
+in music composition and improvisation, just for the fun of it.
 
 In the past, I also used to play video-games to take a break from reading books
 and studying. Nowadays, it's quite the opposite: I rather read books and study
 to take a break from the computer, which is becoming more and more part of my
-every-day routine. Still, I maintain a passion for video-games, which I nurture
-from time to time.
+every-day routine.
 
 Although rare, one of my favorite activities is visiting natural landscapes, in
 particular walking across parks, hills or forests.
