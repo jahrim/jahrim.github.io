@@ -86,4 +86,4 @@ players, showcasing the integration of all microservices. The demo shows:
 11. A public game between two non-authenticated users;
 12. The termination of a game server after the disconnection of a player.
 
-{{<video source="/videos/chess-microservices.mp4">}}
+{{<video source="demo.mp4">}}

@@ -73,4 +73,4 @@ the match. The demo shows:
 5. The new host and the other player continuing the game until termination,
    with the state of the game visible.
 
-{{<video source="/videos/relay-pong.mp4">}}
+{{<video source="demo.mp4">}}

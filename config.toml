@@ -11,7 +11,7 @@ pygmentsCodeFences=true
 
 [params.intro]
 main = "Hi, I'm Jahrim :wave:"
-sub = "I'm a Software Engineer"
+sub = "I'm a PhD Student"
 
 [params.main]
 latestPublishHeader = "My Latest Project"
@@ -27,7 +27,7 @@ hrefTargetBlank = true
 breadcrumb = true
 accentColor = "#FD3519"
 mainSections = ['portfolio'] # values: ['post', 'portfolio'] only accept one section, to be displayed bellow 404
-rendererSafe = false # set to true if wish to remove the unsafe renderer setting below (recommended). Titles will not be run through markdownify
+rendererSafe = true # set to true if wish to remove the unsafe renderer setting below (recommended). Titles will not be run through markdownify
 
 [params.notFound]
 gopher = "/images/gopher.png"
@@ -41,14 +41,15 @@ p = "It seems that this page doesn't exist."
 portfolio = "project"
 
 [params.sidebar]
-backgroundImage = '' # ''/images/background.jpg' # header background image - default "/images/default_sidebar.jpg" - Photo by Tim Marshall on Unsplash
+backgroundImage = '/images/background.jpg' # header background image - default "/images/default_sidebar.jpg" - Photo by Tim Marshall on Unsplash
 gradientOverlay = '' # default: rgba(0,0,0,0.4),rgba(0,0,0,0.4)
-logo = "/images/jahrim-cesario-profile.jpg"
+logo = "/images/profile.jpg"
 [params.assets]
 favicon = "/favicon.ico"
 customCSS = ""
 
 [params.social]
+orcid = "https://orcid.org/0009-0000-1448-5676"
 github = "https://github.com/jahrim"
 # twitter = "https://twitter.com/"
 linkedin = "https://www.linkedin.com/in/jahrim-gabriele-cesario-288a822b8/"
@@ -87,12 +88,12 @@ title = "Portfolio"
 url = "/portfolio/"
 weight = -110
 
-# [[menu.main]]
-# identifier = "blog"
-# name = "Post"
-# title = "Blog section"
-# url = "/post/"
-# weight = -100
+[[menu.main]]
+identifier = "blog"
+name = "Blog"
+title = "Blog section"
+url = "/post/"
+weight = -100
 
 [sitemap]
 changefreq = "monthly"
