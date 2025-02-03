@@ -1,4 +1,4 @@
-baseURL = 'https://jahrim.github.io/'
+baseURL = 'https://jahrim.com/'
 languageCode = 'en-us'
 title = 'Jahrim Cesario'
 theme = 'personal-web'
