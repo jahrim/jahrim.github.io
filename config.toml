@@ -46,7 +46,7 @@ gradientOverlay = '' # default: rgba(0,0,0,0.4),rgba(0,0,0,0.4)
 logo = "/images/profile.jpg"
 [params.assets]
 favicon = "/favicon.ico"
-customCSS = ""
+customCSS = "/css/custom.css"
 
 [params.social]
 orcid = "https://orcid.org/0009-0000-1448-5676"

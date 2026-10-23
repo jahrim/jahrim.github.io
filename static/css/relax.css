@@ -1,0 +1,316 @@
+/* Relax: mini games panel sliding over the sidebar from the left (desktop and tablet),
+ * or dropping down from the top as a full screen on phones (theme's smartphone layout, < 768px).
+ * The panel is a size container: its parts are sized in cqw (1% of the panel width),
+ * clamped to sensible bounds, so everything scales with the panel. */
+
+.relax-panel {
+  --relax-bg: #112F41;
+  --relax-bar: #0B2230;
+  --relax-fg: #FCFCFD;
+  --relax-muted: #8494A4;
+  --relax-accent: #F6EB0F;
+  --relax-danger: #FD3519;
+  --relax-duration: 0.45s;
+}
+
+/* Panel */
+.relax-panel {
+  container-type: size;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 200; /* above the theme's mobile header and hamburger (z-index 100) */
+  width: 30%;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--relax-bg);
+  color: var(--relax-fg);
+  font-family: "Raleway", "Helvetica Neue", sans-serif;
+  box-shadow: 0 0 24px rgba(0, 0, 0, 0.35);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition: transform var(--relax-duration) cubic-bezier(0.22, 0.61, 0.36, 1),
+              visibility 0s linear var(--relax-duration);
+}
+.relax-panel.is-open {
+  transform: none;
+  visibility: visible;
+  transition: transform var(--relax-duration) cubic-bezier(0.22, 0.61, 0.36, 1),
+              visibility 0s;
+}
+
+/* Tablet: the theme's sidebar is 40% wide there */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .relax-panel {
+    width: 40%;
+  }
+}
+
+/* Phone: no sidebar, so the panel drops down from the top (where the hamburger menu is) as a full screen */
+@media (max-width: 767px) {
+  .relax-panel {
+    width: 100%;
+    transform: translateY(-100%);
+  }
+  .relax-panel.is-open {
+    transform: none;
+  }
+  /* keep the bars clear of notches and rounded corners */
+  .relax-topbar {
+    padding-top: calc(clamp(6px, 2.4cqw, 16px) + env(safe-area-inset-top, 0px));
+  }
+  .relax-bottombar {
+    padding-bottom: calc(clamp(6px, 2.4cqw, 16px) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* while the full screen panel is open, the page behind must not scroll */
+html.relax-locked,
+html.relax-locked body {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* taps on buttons act at once, without double-tap zoom */
+.relax-panel button {
+  touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .relax-panel,
+  .relax-panel.is-open {
+    transition: none;
+  }
+}
+
+/* Top bar: selection, restart | ‹ title › | exit, with the title at the exact center */
+.relax-topbar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.3em;
+  padding: clamp(6px, 2.4cqw, 16px) clamp(8px, 3cqw, 20px);
+  font-size: clamp(14px, 4.4cqw, 28px);
+  background: var(--relax-bar);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.relax-topbar-side {
+  display: flex;
+  gap: 0.2em;
+  min-width: 0;
+}
+.relax-topbar-end {
+  justify-content: flex-end;
+}
+.relax-topbar-center {
+  display: flex;
+  align-items: center;
+  gap: 0.2em;
+  min-width: 0;
+}
+.relax-title {
+  max-width: 9em;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+  font-family: "Montserrat", "Helvetica Neue", sans-serif;
+  font-size: 1em;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  color: var(--relax-fg);
+}
+.relax-btn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2em;
+  height: 2em;
+  padding: 0;
+  border: 0;
+  border-radius: 0.45em;
+  background: transparent;
+  color: var(--relax-fg);
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+.relax-btn svg {
+  width: 1.2em;
+  height: 1.2em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.relax-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--relax-accent);
+}
+.relax-btn:focus-visible,
+.relax-overlay-hint:focus-visible {
+  outline: 2px solid var(--relax-accent);
+  outline-offset: -2px;
+}
+.relax-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  background: transparent;
+  color: var(--relax-fg);
+}
+
+/* Stage: the game itself */
+.relax-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 40%, #173D53 0%, var(--relax-bg) 70%);
+}
+.relax-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+}
+.relax-stage.is-hit {
+  animation: relax-hit 0.4s ease-out;
+}
+@keyframes relax-hit {
+  from { box-shadow: inset 0 0 0 4px var(--relax-danger), inset 0 0 40px rgba(253, 53, 25, 0.45); }
+  to   { box-shadow: inset 0 0 0 0 transparent, inset 0 0 0 transparent; }
+}
+
+.relax-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+  padding: 6cqw;
+  border: 0;
+  background: rgba(17, 47, 65, 0.78);
+  color: var(--relax-fg);
+  font-family: inherit;
+  font-size: clamp(12px, 3.6cqw, 22px);
+  text-align: center;
+}
+.relax-overlay[hidden] {
+  display: none;
+}
+.relax-overlay-title {
+  font-family: "Montserrat", "Helvetica Neue", sans-serif;
+  font-size: 1.8em;
+  font-weight: 600;
+  color: var(--relax-accent);
+}
+.relax-overlay-text {
+  line-height: 1.5;
+  max-width: 22em;
+}
+.relax-overlay-hint {
+  margin-top: 0.6em;
+  padding: 0.55em 1.6em;
+  border: 1px solid var(--relax-accent);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--relax-fg);
+  font: 600 0.85em/1 "Montserrat", "Helvetica Neue", sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s, opacity 0.2s;
+}
+.relax-overlay-hint:hover,
+.relax-overlay-hint:focus-visible {
+  background: var(--relax-accent);
+  color: var(--relax-bg);
+}
+/* briefly inactive after a game ends, so a click aimed at a bubble cannot restart right away */
+.relax-overlay-hint:disabled {
+  opacity: 0.35;
+  cursor: default;
+  background: transparent;
+  color: var(--relax-fg);
+}
+
+/* Bottom bar: controls, score and lives */
+.relax-bottombar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.6em;
+  padding: clamp(6px, 2.4cqw, 16px) clamp(8px, 3.2cqw, 22px);
+  font-size: clamp(11px, 3.3cqw, 20px);
+  background: var(--relax-bar);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.relax-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  color: var(--relax-muted);
+  min-width: 0;
+}
+.relax-control {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  white-space: nowrap;
+}
+.relax-control svg {
+  flex: none;
+  width: 1.6em;
+  height: 1.6em;
+}
+.relax-control kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.4em;
+  height: 1.4em;
+  padding: 0 0.25em;
+  border: 1px solid var(--relax-muted);
+  border-radius: 0.3em;
+  font: 600 0.75em/1 "Montserrat", "Helvetica Neue", sans-serif;
+  color: var(--relax-fg);
+}
+.relax-score {
+  font-family: "Montserrat", "Helvetica Neue", sans-serif;
+  font-weight: 600;
+  color: var(--relax-muted);
+  white-space: nowrap;
+}
+.relax-score strong {
+  margin-left: 0.4em;
+  font-size: 1.3em;
+  color: var(--relax-accent);
+  font-variant-numeric: tabular-nums;
+}
+.relax-lives {
+  justify-self: end;
+  display: flex;
+  gap: 0.3em;
+}
+.relax-heart {
+  width: 1.3em;
+  height: 1.3em;
+  fill: var(--relax-danger);
+  stroke: var(--relax-danger);
+  stroke-width: 1.5;
+  transition: fill 0.3s, stroke 0.3s, opacity 0.3s, transform 0.3s;
+}
+.relax-heart.is-lost {
+  fill: transparent;
+  stroke: var(--relax-muted);
+  opacity: 0.6;
+  transform: scale(0.85);
+}

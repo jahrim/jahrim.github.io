@@ -1,0 +1,44 @@
+/* Site-wide additions to the theme (loaded through params.assets.customCSS). */
+@import url("relax.css");
+
+/* Phone header: make the theme's thin hamburger a clearly tappable button */
+@media (max-width: 767px) {
+  .mobile-header {
+    position: relative;
+    cursor: pointer;
+  }
+  .hamburger {
+    top: 50%;
+    left: 12px;
+    width: 44px;
+    height: 44px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    transform: translateY(-50%);
+    transition: background-color 0.2s, border-color 0.2s;
+  }
+  .hamburger:hover,
+  .hamburger.cross {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.7);
+  }
+  .hamburger .bar {
+    width: 22px;
+    height: 2.5px;
+    margin-bottom: 0;
+    border-radius: 2px;
+  }
+  /* open menu: the outer bars meet in the middle (2.5px bar + 5px gap apart) and form an × */
+  .hamburger.cross .bar:nth-child(1) {
+    top: 3.75px;
+  }
+  .hamburger.cross .bar:nth-child(3) {
+    top: -3.75px;
+  }
+}

@@ -1,0 +1,50 @@
+<!-- mini games panel: slides over the sidebar when "Relax" is pressed (driven by static/js/relax.js) -->
+<aside id="relax-panel" class="relax-panel" aria-label="Relax: mini games" aria-hidden="true">
+  <!-- three equal zones keep the title centered: selection, restart | ‹ title › | exit -->
+  <div class="relax-topbar">
+    <div class="relax-topbar-side">
+      <button type="button" class="relax-btn relax-menu" aria-label="Back to game selection">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>
+      </button>
+      <button type="button" class="relax-btn relax-restart" aria-label="Restart game">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg>
+      </button>
+    </div>
+    <div class="relax-topbar-center">
+      <button type="button" class="relax-btn relax-prev" aria-label="Previous game">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 class="relax-title" aria-live="polite"></h2>
+      <button type="button" class="relax-btn relax-next" aria-label="Next game">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+    <div class="relax-topbar-side relax-topbar-end">
+      <!-- exit: an arrow leaving a door frame, pointing left like the panel's way out -->
+      <button type="button" class="relax-btn relax-close" aria-label="Exit games">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3.5h4a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-4"/><path d="M9 7.5L4.5 12 9 16.5"/><path d="M4.5 12H15"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="relax-stage">
+    <canvas class="relax-canvas"></canvas>
+    <!-- start / pause / game over screen: only its button acts, so clicks aimed at bubbles are ignored -->
+    <div class="relax-overlay">
+      <span class="relax-overlay-title"></span>
+      <span class="relax-overlay-text"></span>
+      <button type="button" class="relax-overlay-hint"></button>
+    </div>
+  </div>
+
+  <div class="relax-bottombar">
+    <div class="relax-controls"></div>
+    <div class="relax-score">Score <strong>0</strong></div>
+    <div class="relax-lives" role="img"></div>
+  </div>
+</aside>
+{{/* the game modules (assets/js/relax/) bundled into one script: minified in production, and
+     fingerprinted, so phones and browsers never keep running a stale cached copy */}}
+{{ $opts := dict "targetPath" "js/relax.js" "format" "iife" "target" "es2017" "minify" hugo.IsProduction }}
+{{ $relax := resources.Get "js/relax/main.js" | js.Build $opts | fingerprint }}
+<script src="{{ $relax.RelPermalink }}" integrity="{{ $relax.Data.Integrity }}" defer></script>
