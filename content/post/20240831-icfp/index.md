@@ -1,7 +1,7 @@
 ---
 title: ICFP24 at Milano
 slug: icfp24
-description: Internation Conference on Functional Programming 2024 at Milano
+description: International Conference on Functional Programming 2024 at Milano
 date: '2024-08-10T00:00:00+00:00'
 publishDate: '2024-08-10T00:00:00+00:00'
 ---
@@ -11,5 +11,5 @@ publishDate: '2024-08-10T00:00:00+00:00'
 
 <!-- reading time is evaluated automatically measuring the following text -->
 Many interesting talks and people. There are weeks' worth of places to explore in
-Milano, beside the stunning Duomo. Also some really good sushi? Unfortunately, the
-city was flooded due to terrible weather and I got sick the last few days.
+Milano, besides the stunning Duomo. Also some really good sushi? Unfortunately, the
+city was flooded due to terrible weather and I got sick during the last few days.

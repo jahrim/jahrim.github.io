@@ -1,0 +1,19 @@
+<!-- the card links to the project page, unless the project sets an external cardUrl -->
+<div class="portfolio-list">
+  {{ with .Params.cardUrl }}
+  <a href="{{ . }}" target="_blank" rel="noopener">
+  {{ else }}
+  <a href="{{.Permalink}}">
+  {{ end }}
+    <div class="portfolio-container">
+      <img title="{{.Title}}" alt="{{.Title}}" src="/portfolio/{{ .Params.Thumbnail }}" />
+      <div class="img-overlay">
+      </div>
+      <div class="portfolio-details">
+        <h2><span>{{ .Title }}</span></h2>
+        <p class="small">{{ delimit .Params.Work ", " | safeHTML }}</p>
+        <p class="small">{{ .Params.jobDate }}</p>
+      </div>
+    </div>
+  </a>
+</div>

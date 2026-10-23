@@ -1,0 +1,19 @@
+<!-- a post has more to read only if the summary does not already contain the whole post -->
+<!-- (.Truncated is unreliable here: it is true for some posts whose summary is the entire content) -->
+{{ $hasMore := ne (trim .Summary " \t\r\n") (trim .Content " \t\r\n") }}
+<div class="post-container">
+  <h2>
+    {{ if $hasMore }}
+    <a href="{{.Permalink}}">{{ .Title }}</a>
+    {{ else }}
+    {{ .Title }}
+    {{ end }}
+  </h2>
+  <p>{{ .Summary }}</p>
+  {{ if $hasMore }}
+  <div class="read-more">
+    <a href="{{.Permalink}}">{{ partial "svg" (dict "iconName" "read" "size" "18px")}}
+    Read more</a>
+  </div>
+  {{ end }}
+</div>
