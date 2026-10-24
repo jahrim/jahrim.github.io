@@ -102,10 +102,14 @@ export function initPanel(ui, engine) {
     ui.overlayHint.focus({ preventScroll: true });
   });
 
-  // follow the input actually in use for the controls icon (touch or mouse)
+  // follow the input actually in use for the controls icon (touch or mouse): a press, or a mouse
+  // moving (before any click, where the device was guessed wrong)
   document.addEventListener('pointerdown', function (event) {
     if (event.pointerType === '') return;
     engine.setTouch(event.pointerType === 'touch' || event.pointerType === 'pen');
+  }, true);
+  document.addEventListener('pointermove', function (event) {
+    if (event.pointerType === 'mouse') engine.setTouch(false);
   }, true);
 
   // pointers on the stage, each finger on its own (a game can use several at once): captured, so
@@ -126,6 +130,11 @@ export function initPanel(ui, engine) {
     ui.canvas.addEventListener(type, function (event) { engine.pointerUp(event.pointerId); });
   });
   ui.canvas.addEventListener('contextmenu', function (event) { event.preventDefault(); });
+  // touch-action: none is not enough for some browsers, which still turn swipes on the stage into
+  // their own gestures (refresh, navigation): cancel the touches themselves (pointer events still come)
+  ['touchstart', 'touchmove'].forEach(function (type) {
+    ui.canvas.addEventListener(type, function (event) { event.preventDefault(); }, { passive: false });
+  });
 
   document.addEventListener('keydown', function (event) {
     if (!isOpen()) return;

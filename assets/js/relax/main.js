@@ -39,6 +39,7 @@ function main() {
     overlayTitle: panel.querySelector('.relax-overlay-title'),
     overlayText: panel.querySelector('.relax-overlay-text'),
     overlayHint: panel.querySelector('.relax-overlay-hint'),
+    tipEl: panel.querySelector('.relax-tip'),
     board: panel.querySelector('.relax-board'),
     initialsForm: panel.querySelector('.relax-initials'),
     initialsInput: panel.querySelector('.relax-initials input'),

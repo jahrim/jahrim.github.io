@@ -7,7 +7,10 @@
  * hideLives: true hides the hearts in the stage's corner (for a game that shows its lives itself), and an
  * optional maxLives: how many lives can be gained back up to (by default, the starting lives), and an
  * optional touchControls: the bottom bar's controls on touch screens, in place of controls (icons.js),
- * and an optional touchDescription: the start screen's text on touch screens, in place of description.
+ * and optional tips: short texts, one of them shown on the start screen (the first one at random, then
+ * the next one each time the game is selected again, around the list), each a string or
+ * { text, touch, icon } (touch true: on touch screens only, false: with a mouse and keyboard only;
+ * icon: a control, like the controls' entries, whose icon goes before the text).
  * create(api) returns an instance with:
  *   reset()                      start a new run
  *   update(dt, time, active)     advance by dt seconds; when active is false only finish animations
@@ -22,7 +25,7 @@
  * and can call api.addScore(n), api.loseLife(), api.gainLife(), api.score(), api.lives(), api.maxLives()
  * and api.size().
  */
-import { controlsHtml, renderLives } from './icons.js';
+import { controlsHtml, renderLives, tipHtml } from './icons.js';
 import { createLeaderboard, normalizeInitials } from './leaderboard.js';
 
 var OVERLAY_GUARD = 800; // ms the game-over button stays inactive, against clicks meant for bubbles
@@ -40,6 +43,7 @@ export function createEngine(ui, games, options) {
 
   var current = null;    // { def, instance, board }
   var pending = null;    // a high score waiting for the player's initials
+  var tipAt = {};        // by game id: the position of the tip shown last
   var index = 0;
   var status = 'ready';  // ready | playing | paused | over
   var score = 0;
@@ -110,13 +114,30 @@ export function createEngine(ui, games, options) {
     return value.toLocaleString('en-US');
   }
 
-  // the overlay starts plain: the leaderboard and the initials form are added by the caller
+  // a tip on the start screen, among the game's tips for the input in use: the first one at random,
+  // then with next, the one after the last one shown (back to the first after the last)
+  function showTip(next) {
+    var tips = (current.def.tips || []).filter(function (tip) {
+      return typeof tip === 'string' || tip.touch === usingTouch;
+    });
+    ui.tipEl.hidden = !tips.length;
+    ui.overlay.classList.toggle('has-tip', tips.length > 0);
+    if (!tips.length) return;
+    var id = current.def.id;
+    if (!(id in tipAt)) tipAt[id] = Math.floor(Math.random() * tips.length);
+    else if (next) tipAt[id] += 1;
+    ui.tipEl.innerHTML = tipHtml(tips[tipAt[id] % tips.length], usingTouch);
+  }
+
+  // the overlay starts plain: the leaderboard, the initials form and the tip are added by the caller
   function showOverlay(title, text, hint) {
     ui.overlayTitle.textContent = title;
     ui.overlayText.textContent = text;
     ui.overlayHint.textContent = hint;
     ui.board.hidden = true;
     ui.initialsForm.hidden = true;
+    ui.tipEl.hidden = true;
+    ui.overlay.classList.remove('has-tip');
     clearTimeout(guardTimer);
     ui.overlayHint.disabled = false;
     ui.overlay.hidden = false;
@@ -144,10 +165,6 @@ export function createEngine(ui, games, options) {
     showBoard(entry);
   }
 
-  function description() {
-    return (usingTouch && current.def.touchDescription) || current.def.description;
-  }
-
   function load(i) {
     if (current) savePending();
     index = (i + games.length) % games.length;
@@ -158,8 +175,9 @@ export function createEngine(ui, games, options) {
     ui.titleEl.textContent = def.title;
     ui.controlsEl.innerHTML = controlsHtml(def, usingTouch);
     ui.livesEl.hidden = !!def.hideLives; // a game can show its lives its own way
-    showOverlay(def.title, description(), 'Start');
+    showOverlay(def.title, def.description, 'Start');
     showBoard();
+    showTip(true);
   }
 
   function start() {
@@ -251,7 +269,7 @@ export function createEngine(ui, games, options) {
     if (touch === usingTouch) return;
     usingTouch = touch;
     ui.controlsEl.innerHTML = controlsHtml(current.def, usingTouch);
-    if (status === 'ready') ui.overlayText.textContent = description();
+    if (status === 'ready') showTip();
   }
 
   // input on the stage: returns whether the game used it

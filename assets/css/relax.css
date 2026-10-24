@@ -235,6 +235,31 @@ html.relax-locked body {
   line-height: 1.5;
   max-width: 22em;
 }
+/* the start screen's tip, at the bottom of the stage: the screen keeps room for it, and it goes
+   with the screen */
+.relax-overlay.has-tip {
+  padding-bottom: calc(clamp(10px, 5cqmin, 28px) + 3.4em);
+}
+.relax-tip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: 0;
+  padding: 0 clamp(10px, 5cqmin, 28px) clamp(8px, 3cqmin, 16px);
+  color: var(--relax-muted);
+  font-size: clamp(10px, 2.9cqmin, 16px);
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5em;
+}
+.relax-overlay[hidden] ~ .relax-tip {
+  display: none;
+}
 .relax-overlay-hint {
   margin-top: 0.6em;
   padding: 0.55em 1.6em;
@@ -384,17 +409,20 @@ html.relax-locked body {
   font-weight: 400;
   line-height: 1;
 }
-.relax-control svg {
+.relax-control svg,
+.relax-tip svg {
   flex: none;
   width: 1.6em;
   height: 1.6em;
 }
 /* the arrow keys icon is wider than tall, like the keys themselves */
-.relax-control svg.relax-arrows {
+.relax-control svg.relax-arrows,
+.relax-tip svg.relax-arrows {
   width: 2.2em;
   height: 1.6em;
 }
-.relax-control kbd {
+.relax-control kbd,
+.relax-tip kbd {
   display: inline-grid;
   place-items: center;
   min-width: 1.4em;

@@ -16,6 +16,10 @@ export default {
   title: 'Bubbles',
   description: 'Pop the bubbles! Aim for 10k.',
   controls: [{ type: 'mouse', button: 'left', label: 'Pop' }],
+  tips: [
+    'Pop the bubbles before they burst.',
+    'Don\'t pop the dark bubbles.'
+  ],
   lives: 3,
   // preset leaderboard: the top score is the author's personal best
   leaderboard: [

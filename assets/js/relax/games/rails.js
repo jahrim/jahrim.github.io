@@ -7,9 +7,8 @@
  * next switch ahead in the driving direction one branch to the left / right, as seen from the
  * locomotive: in reverse, like a car's steering, ← still sends the train to its left; driving,
  * reversing and passing switches never change their settings. Dead ends close with buffer stops.
- * A click on a signal sets its switch to that branch. ↑ ↓ accelerate forwards / backwards, Space
- * fires (WASD works too). On touch screens, one hand drives and the other commands: a finger held
- * down drives in the set direction (lifted, the train stops), a second one held down fires; swipes
+ * ↑ ↓ accelerate forwards / backwards, Space fires (WASD works too). On touch screens, a finger held on the left half of the stage drives in
+ * the set direction (lifted, the train stops), and one held on the right half fires; swipes anywhere
  * set the direction (up forwards, down backwards) and the next switch (left / right, like ← →).
  * The train is a locomotive at its front (orange, with its cab) pulling wagons; it backs up in
  * reverse. The last command (↑ or ↓) sets the driving direction, where shots go, right away, even
@@ -170,16 +169,23 @@ var WAGON_COLOR = '#3FA7D6';
 export default {
   id: 'rails',
   title: 'Rails',
-  description: 'Mine the asteroids, repair the stations, keep the train in one piece! Click a signal to set its switch.',
-  touchDescription: 'Mine the asteroids, repair the stations, keep the train in one piece! Hold a finger down to drive and a second one to fire. Swipe up or down to drive forwards or backwards, left or right to set the next switch.',
+  description: 'Mine the asteroids, repair the stations, keep the train in one piece!',
   controls: [
     { type: 'arrows', label: 'Drive', title: 'Drive: arrow keys or WASD' },
     { type: 'keys', keys: ['Space'], label: 'Fire' }
   ],
+  tips: [
+    { text: 'WASD works as the arrows.', touch: false },
+    { text: 'Set the next switch.', touch: false, icon: { type: 'arrows', lit: ['left', 'right'] } },
+    { text: 'Swipe up or down to reverse.', touch: true, icon: { type: 'hint', icon: 'swipe' } },
+    { text: 'Swipe left or right to set the next switch.', touch: true, icon: { type: 'hint', icon: 'swipe' } },
+    'Switches change the train\'s track.',
+    'Stop by a station to use it.'
+  ],
   // on touch screens, gestures on the stage (see the pointer handlers)
   touchControls: [
-    { type: 'hint', icon: 'hold', label: 'Drive', title: 'Hold a finger down to drive' },
-    { type: 'hint', icon: 'two', label: 'Fire', title: 'Hold a second finger down to fire' },
+    { type: 'hint', icon: 'left', label: 'Drive', title: 'Hold the left side to drive' },
+    { type: 'hint', icon: 'right', label: 'Fire', title: 'Hold the right side to fire' },
     { type: 'hint', icon: 'swipe', label: 'Directions', title: 'Swipe up or down to drive forwards or backwards, left or right to set the next switch' }
   ],
   lives: 3,
@@ -243,10 +249,9 @@ export default {
     var MIN_SPACING = 0.16;          // ... or at least this, on a crowded track
     var SIGNAL_OUT = 0.055;          // units from a branch to its signal's lamp
     var SIGNAL_SPACING = 0.065;      // ... and between two lamps, so they stay apart
-    var SIGNAL_REACH = 0.035;        // how close to a lamp a click sets its switch
     var SWIPE = 0.06;                // units a finger moves for a swipe ...
     var SWIPE_TIME = 0.35;           // ... within these seconds of touching down (later, it's a drifting hold)
-    var FIRE_HOLD = 0.1;             // seconds a second finger is held before firing (not a swipe starting)
+    var FIRE_HOLD = 0.1;             // seconds a finger is held before firing (not a swipe starting)
     var WAY_BEFORE = 0.04;           // units of the way ahead lit before the next switch ...
     var WAY_PAST = 0.2;              // ... and past it (its setting), fading out at both ends
     var WAY_ALPHA = 0.18;            // how bright it is lit, at the switch
@@ -277,8 +282,9 @@ export default {
     var track, trackIndex, deck, route, head, v, facing, keys, cooldown, invulnerable;
     var bullets, rocks, debris, texts, waves, level, destroyed, spawnTimer, banner, bannerText;
     var clock; // seconds played, for timing the touches
-    // touches: the fingers down on the stage, by pointer id: { x, y, at, swiped }; touchDriving: the
-    // player drives by touch (the train stops when let go, instead of coasting)
+    // touches: the fingers down on the stage, by pointer id: { x, y, at, fires (on the right half),
+    // swiped }; touchDriving: the player drives by touch (the train stops when let go, instead of
+    // coasting)
     var touches, touchDriving;
     var levelDone; // the level's goal is reached: the next level starts once this frame's hits are counted
     // turrets: one slot per car (per life), front to back, holding { grade } or null;
@@ -939,9 +945,12 @@ export default {
           banner = Math.max(0, banner - dt);
 
           // driving: ↑ ↓ accelerate along the track, harder when braking; coasting slows down. On
-          // touch, a finger held down drives in the set direction, and with none the train brakes
-          var held = Object.keys(touches).filter(function (id) { return !touches[id].swiped; });
-          var push = (keys.up ? 1 : 0) - (keys.down ? 1 : 0) || (held.length ? facing : 0);
+          // touch, a finger held on the left half drives in the set direction, and with none the
+          // train brakes
+          var held = Object.keys(touches).map(function (id) { return touches[id]; })
+            .filter(function (touch) { return !touch.swiped; });
+          var driving = held.some(function (touch) { return !touch.fires; });
+          var push = (keys.up ? 1 : 0) - (keys.down ? 1 : 0) || (driving ? facing : 0);
           if (push) {
             v += push * (push * v < 0 ? BRAKE : ACCEL) * dt;
           } else if (v) {
@@ -956,8 +965,8 @@ export default {
           ensureRoute();
 
           cooldown -= dt;
-          var fingers = held.filter(function (id) { return clock - touches[id].at >= FIRE_HOLD; });
-          if ((keys.fire || fingers.length >= 2) && cooldown <= 0) {
+          var firing = held.some(function (touch) { return touch.fires && clock - touch.at >= FIRE_HOLD; });
+          if ((keys.fire || firing) && cooldown <= 0) {
             fire();
             cooldown = FIRE_COOLDOWN;
           }
@@ -1037,28 +1046,11 @@ export default {
         return true;
       },
 
-      // a finger on a touch screen (see the touch fields); a click on a signal sets its switch to that
-      // branch
+      // a finger on a touch screen (see the touch fields); the mouse plays no part
       pointerDown: function (x, y, button, pointerType, id) {
-        if (pointerType !== 'mouse') {
-          touches[id] = { x: x, y: y, at: clock, swiped: false };
-          touchDriving = true;
-          return;
-        }
-        var b = bounds();
-        var size = api.size();
-        var px = (x - size.width / 2) / b.unit;
-        var py = (y - size.height / 2) / b.unit;
-        var best = null;
-        switches().forEach(function (sw) {
-          sw.options.forEach(function (option) {
-            var d = Math.hypot(option.lamp.x - px, option.lamp.y - py);
-            if (d < SIGNAL_REACH && (!best || d < best.d)) {
-              best = { d: d, sw: sw, option: option };
-            }
-          });
-        });
-        if (best) track.settings[switchKey(best.sw.arr)] = best.option.step;
+        if (pointerType === 'mouse') return;
+        touches[id] = { x: x, y: y, at: clock, fires: x > api.size().width / 2, swiped: false };
+        touchDriving = true;
       },
 
       // a finger moving quickly enough is a swipe: up / down set the driving direction, left / right
