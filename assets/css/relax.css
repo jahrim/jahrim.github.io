@@ -1,6 +1,7 @@
 /* Relax: mini games panel sliding over the sidebar from the left (desktop and tablet),
  * or dropping down from the top as a full screen on phones (theme's smartphone layout, < 768px).
- * The panel is a size container: its parts are sized in cqw (1% of the panel width),
+ * The panel is a size container: its parts are sized in cqmin (1% of the panel's shorter side, so a
+ * wide but short screen like a phone in landscape does not get oversized bars and text),
  * clamped to sensible bounds, so everything scales with the panel. */
 
 .relax-panel {
@@ -11,10 +12,11 @@
   --relax-accent: #F6EB0F;
   --relax-danger: #FD3519;
   --relax-duration: 0.45s;
-}
-
-/* Panel */
-.relax-panel {
+  /* shared by the top and bottom bars, so both have the same height (resolved in the panel's units) */
+  --relax-icon: clamp(18px, 5.5cqmin, 34px);
+  --relax-bar-pad: clamp(6px, 2.4cqmin, 16px);
+  --relax-bar-height: calc(var(--relax-icon) * 1.4);
+  --relax-font: "Montserrat", "Helvetica Neue", sans-serif; /* titles, labels, numbers */
   container-type: size;
   position: fixed;
   top: 0;
@@ -59,10 +61,10 @@
   }
   /* keep the bars clear of notches and rounded corners */
   .relax-topbar {
-    padding-top: calc(clamp(6px, 2.4cqw, 16px) + env(safe-area-inset-top, 0px));
+    padding-top: calc(var(--relax-bar-pad) + env(safe-area-inset-top, 0px));
   }
   .relax-bottombar {
-    padding-bottom: calc(clamp(6px, 2.4cqw, 16px) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--relax-bar-pad) + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -71,6 +73,11 @@ html.relax-locked,
 html.relax-locked body {
   overflow: hidden;
   overscroll-behavior: none;
+}
+
+/* hidden parts of the panel (the screen overlay, leaderboard, initials form, hearts) */
+.relax-panel [hidden] {
+  display: none;
 }
 
 /* taps on buttons act at once, without double-tap zoom */
@@ -91,8 +98,10 @@ html.relax-locked body {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 0.3em;
-  padding: clamp(6px, 2.4cqw, 16px) clamp(8px, 3cqw, 20px);
-  font-size: clamp(14px, 4.4cqw, 28px);
+  box-sizing: content-box;
+  height: var(--relax-bar-height);
+  padding: var(--relax-bar-pad) clamp(8px, 3cqw, 20px);
+  font-size: clamp(14px, 4.4cqmin, 28px);
   background: var(--relax-bar);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -117,7 +126,7 @@ html.relax-locked body {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
-  font-family: "Montserrat", "Helvetica Neue", sans-serif;
+  font-family: var(--relax-font);
   font-size: 1em;
   font-weight: 600;
   line-height: 1.2;
@@ -128,19 +137,19 @@ html.relax-locked body {
   flex: none;
   display: grid;
   place-items: center;
-  width: 2em;
-  height: 2em;
+  width: var(--relax-bar-height);
+  height: var(--relax-bar-height);
   padding: 0;
   border: 0;
-  border-radius: 0.45em;
+  border-radius: calc(var(--relax-icon) * 0.3);
   background: transparent;
   color: var(--relax-fg);
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
 }
 .relax-btn svg {
-  width: 1.2em;
-  height: 1.2em;
+  width: var(--relax-icon);
+  height: var(--relax-icon);
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -194,22 +203,31 @@ html.relax-locked body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 0.5em;
-  padding: 6cqw;
-  border: 0;
+  justify-content: flex-start;
+  gap: 0.4em;
+  padding: clamp(10px, 5cqmin, 28px);
+  overflow-y: auto;
   background: rgba(17, 47, 65, 0.78);
   color: var(--relax-fg);
-  font-family: inherit;
-  font-size: clamp(12px, 3.6cqw, 22px);
+  font-size: clamp(11px, 3.4cqmin, 20px);
   text-align: center;
 }
-.relax-overlay[hidden] {
-  display: none;
+/* centered while everything fits; when it does not, it scrolls from the top instead of overflowing
+   at both ends, so the title and the button are never cut off (empty spacers above and below,
+   since the last element, the leaderboard, may be hidden) */
+.relax-overlay::before,
+.relax-overlay::after {
+  content: '';
+}
+.relax-overlay::before {
+  margin-top: auto;
+}
+.relax-overlay::after {
+  margin-bottom: auto;
 }
 .relax-overlay-title {
-  font-family: "Montserrat", "Helvetica Neue", sans-serif;
-  font-size: 1.8em;
+  font-family: var(--relax-font);
+  font-size: 1.6em;
   font-weight: 600;
   color: var(--relax-accent);
 }
@@ -224,7 +242,7 @@ html.relax-locked body {
   border-radius: 999px;
   background: transparent;
   color: var(--relax-fg);
-  font: 600 0.85em/1 "Montserrat", "Helvetica Neue", sans-serif;
+  font: 600 0.85em/1 var(--relax-font);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   cursor: pointer;
@@ -243,14 +261,107 @@ html.relax-locked body {
   color: var(--relax-fg);
 }
 
-/* Bottom bar: controls, score and lives */
+/* Leaderboard on the start and game over screens, below the button */
+.relax-board {
+  width: min(15em, 100%);
+  margin: 2.75em 0 0; /* below the button, set apart from the instructions */
+  padding: 0;
+  list-style: none;
+  font: 600 0.8em/1 var(--relax-font);
+  font-variant-numeric: tabular-nums;
+}
+.relax-board-row {
+  display: grid;
+  grid-template-columns: 2.2em 1fr auto;
+  align-items: baseline;
+  padding: 0.3em 0.55em;
+  border-radius: 0.4em;
+  color: var(--relax-muted);
+  letter-spacing: 0.08em;
+}
+.relax-board-row span:first-child {
+  text-align: left;
+  opacity: 0.7;
+}
+.relax-board-row span:nth-child(2) {
+  text-align: left;
+  color: var(--relax-fg);
+}
+.relax-board-row span:last-child {
+  text-align: right;
+}
+.relax-board-row:first-child span:nth-child(2),
+.relax-board-row:first-child span:last-child {
+  color: var(--relax-accent);
+}
+/* the player's own results */
+.relax-board-row.is-mine {
+  background: rgba(246, 235, 15, 0.12);
+}
+.relax-board-row.is-mine span {
+  color: var(--relax-accent);
+  opacity: 1;
+}
+/* the player's best, shown below the top entries with its real rank */
+.relax-board-row.is-outside {
+  margin-top: 0.4em;
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 0 0 0.4em 0.4em;
+}
+.relax-board-row.is-new {
+  animation: relax-new-entry 1.2s ease-in-out 2;
+}
+@keyframes relax-new-entry {
+  50% { background: rgba(246, 235, 15, 0.35); }
+}
+
+/* Arcade-style initials for a new high score */
+.relax-initials {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+}
+.relax-initials input {
+  width: 4.2em;
+  padding: 0.25em 0.3em;
+  border: 0;
+  border-bottom: 2px solid var(--relax-accent);
+  background: transparent;
+  color: var(--relax-accent);
+  font: 700 1.5em/1.2 var(--relax-font);
+  letter-spacing: 0.3em;
+  text-align: center;
+  text-transform: uppercase;
+}
+.relax-initials input:focus {
+  outline: none;
+  background: rgba(246, 235, 15, 0.08);
+}
+.relax-initials input::placeholder {
+  color: rgba(246, 235, 15, 0.3);
+}
+.relax-initials button {
+  padding: 0.45em 1em;
+  border: 1px solid var(--relax-accent);
+  border-radius: 999px;
+  background: var(--relax-accent);
+  color: var(--relax-bg);
+  font: 600 0.8em/1 var(--relax-font);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+/* Bottom bar: the controls on the left, with all the room they need, and the score on the right */
 .relax-bottombar {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.6em;
-  padding: clamp(6px, 2.4cqw, 16px) clamp(8px, 3.2cqw, 22px);
-  font-size: clamp(11px, 3.3cqw, 20px);
+  box-sizing: content-box;
+  height: var(--relax-bar-height);
+  padding: var(--relax-bar-pad) clamp(8px, 3.2cqw, 22px);
+  font-size: clamp(11px, 3.3cqmin, 20px);
   background: var(--relax-bar);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -267,9 +378,20 @@ html.relax-locked body {
   gap: 0.4em;
   white-space: nowrap;
 }
+/* control labels look like the "Score" label, and sit on the same line */
+.relax-control > span {
+  font-family: var(--relax-font);
+  font-weight: 400;
+  line-height: 1;
+}
 .relax-control svg {
   flex: none;
   width: 1.6em;
+  height: 1.6em;
+}
+/* the arrow keys icon is wider than tall, like the keys themselves */
+.relax-control svg.relax-arrows {
+  width: 2.2em;
   height: 1.6em;
 }
 .relax-control kbd {
@@ -280,25 +402,44 @@ html.relax-locked body {
   padding: 0 0.25em;
   border: 1px solid var(--relax-muted);
   border-radius: 0.3em;
-  font: 600 0.75em/1 "Montserrat", "Helvetica Neue", sans-serif;
+  font: 600 0.75em/1 var(--relax-font);
   color: var(--relax-fg);
 }
+/* narrow panels: keys and icons only, the labels would push into the score (touch hints keep
+   theirs: a gesture's icon alone doesn't say what it does) */
+@container (max-width: 380px) {
+  .relax-control:not(.relax-hint) > span {
+    display: none;
+  }
+}
+/* centered like the controls (not on the baseline of the bigger number), so the labels line up */
 .relax-score {
-  font-family: "Montserrat", "Helvetica Neue", sans-serif;
-  font-weight: 600;
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  font-family: var(--relax-font);
+  font-weight: 400;
+  line-height: 1;
   color: var(--relax-muted);
   white-space: nowrap;
 }
+/* only the number itself stays bold */
 .relax-score strong {
-  margin-left: 0.4em;
   font-size: 1.3em;
+  font-weight: 600;
   color: var(--relax-accent);
   font-variant-numeric: tabular-nums;
 }
+/* lives: in the stage's top right corner, over the game, under the start / pause screen */
 .relax-lives {
-  justify-self: end;
+  position: absolute;
+  top: clamp(12px, 4cqmin, 26px);
+  right: clamp(14px, 4.5cqmin, 30px);
   display: flex;
   gap: 0.3em;
+  font-size: clamp(11px, 3.3cqmin, 20px);
+  pointer-events: none;
 }
 .relax-heart {
   width: 1.3em;

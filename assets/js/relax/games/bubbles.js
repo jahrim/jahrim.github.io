@@ -1,9 +1,10 @@
 /*
  * Bubbles: pop the bubbles before they grow too large and burst.
  *
- * Kinds: regular bubbles, black ones (popping costs a life), hearts (restore a life, or bonus points
- * at full lives) and ×2 (doubles all points for a while); later in the game, jagged bubbles (burst
- * faster, worth more), shields (two clicks, worth more) and floating bubbles (move, worth more).
+ * Kinds: regular bubbles, black ones (popping costs a life) and ×2 (doubles all points for a while);
+ * later in the game, jagged bubbles (burst faster, worth more). Regular and jagged bubbles can carry
+ * modifiers that stack: hearts (restore a life, or worth more at full lives), shields (two clicks,
+ * worth more) and floating (move, worth more).
  * The settings at the top of create() tune all of it.
  */
 import { HEART_ICON } from '../icons.js';
@@ -16,6 +17,14 @@ export default {
   description: 'Pop the bubbles! Aim for 10k.',
   controls: [{ type: 'mouse', button: 'left', label: 'Pop' }],
   lives: 3,
+  // preset leaderboard: the top score is the author's personal best
+  leaderboard: [
+    { name: 'JAH', score: 50000 },
+    { name: 'POP', score: 20000 },
+    { name: 'FIZ', score: 8000 },
+    { name: 'BUB', score: 2500 },
+    { name: 'ZZZ', score: 600 }
+  ],
   create: function (api) {
     // Everything is stored relative to the stage, so the game rescales with it:
     // positions are fractions of the stage width/height, lengths are fractions of its shorter side.
@@ -34,10 +43,10 @@ export default {
     var BLACK_AFTER = 4;    // seconds before the first black bubble can appear
     var COMBO_WINDOW = 0.9; // seconds to pop the next bubble and keep the combo going
     var COMBO_COLORS = ['#F6EB0F', '#FAC05E', '#FF9F43', '#FF7EB6', '#C77DFF'];
-    var HEART_CHANCE = 0.02;  // share of hearts: popping one restores a life, or gives a bonus at full lives
+    var HEART_CHANCE = 0.02;  // share of regular and jagged bubbles carrying a heart, once unlocked
     var DOUBLE_CHANCE = 0.02; // share of ×2 bubbles: popping one doubles all points for a while
     var DOUBLE_DURATION = 10; // seconds the ×2 buff lasts; catching another restarts it (no stacking)
-    var POWERUP_LIFETIME = 1.8; // hearts and ×2 vanish faster than bubbles, without any penalty
+    var POWERUP_LIFETIME = 1.8; // ×2 bubbles vanish faster than bubbles, without any penalty
     var POWERUP_SIZE = 0.8;   // relative to a bubble
     var POWERUP_AFTER = 20;   // score needed before hearts and ×2 can appear
     var JAGGED_CHANCE = 0.1;  // share of jagged bubbles once unlocked: they burst fast, but are worth more
@@ -54,7 +63,7 @@ export default {
     var FLOAT_POINTS = 10;    // multiplier on the points of a floating bubble (stacks with shield and jagged)
     var FLOAT_LEG = 2;        // seconds to glide from one end of the path to the other
     var FLOAT_MIN_TRIP = 0.35; // minimum path length, relative to the stage's shorter side
-    var HEART_BONUS = 5;      // points for a heart caught at full lives
+    var HEART_POINTS = 5;     // multiplier on the points of a heart popped at full lives (otherwise it heals)
 
     var items, effects, nextSpawn, combo, comboTimer, boostTimer;
 
@@ -62,7 +71,7 @@ export default {
       return SPAWN_MIN + (SPAWN_START - SPAWN_MIN) * Math.exp(-score / SPAWN_SCALE);
     }
 
-    // stage metrics: px per unit length, and margins as fractions of width/height
+    // stage metrics: its size, and px per unit length
     function metrics() {
       var size = api.size();
       return { width: size.width, height: size.height, unit: Math.min(size.width, size.height) };
@@ -74,14 +83,14 @@ export default {
       var kind = 'bubble';
       // power-ups are held back until the player has scored a bit
       var roll = api.score() >= POWERUP_AFTER ? Math.random() : 1;
-      if (roll < HEART_CHANCE) kind = 'heart';
-      else if (roll < HEART_CHANCE + DOUBLE_CHANCE) kind = 'double';
+      if (roll < DOUBLE_CHANCE) kind = 'double';
       else if (api.score() >= JAGGED_AFTER && Math.random() < JAGGED_CHANCE) kind = 'jagged';
       else if (time >= BLACK_AFTER && Math.random() < BLACK_CHANCE) kind = 'black';
-      var powerUp = kind === 'heart' || kind === 'double';
+      var powerUp = kind === 'double';
       var size = powerUp ? POWERUP_SIZE : kind === 'jagged' ? JAGGED_SIZE : 1;
       var shield = (kind === 'bubble' || kind === 'jagged') && api.score() >= SHIELD_AFTER && Math.random() < SHIELD_CHANCE;
       var floating = (kind === 'bubble' || kind === 'jagged') && api.score() >= FLOAT_AFTER && Math.random() < FLOAT_CHANCE;
+      var heart = (kind === 'bubble' || kind === 'jagged') && api.score() >= POWERUP_AFTER && Math.random() < HEART_CHANCE;
       var maxRadius = MAX_RADIUS * (0.85 + Math.random() * 0.3) * size;
       var extent = maxRadius * (shield ? SHIELD_SCALE : 1); // how far the bubble reaches, shield included
       var marginX = Math.min(0.5, (extent * m.unit + 6) / m.width);
@@ -110,10 +119,11 @@ export default {
       items.push({
         x: x, y: y, age: 0, maxRadius: maxRadius, kind: kind,
         floating: floating, x2: x2, y2: y2,
+        heart: heart,     // heals when a life is missing, worth HEART_POINTS times more otherwise
         shield: shield,   // still protected: the next click only breaks the shield
         shielded: shield, // was shielded: worth SHIELD_POINTS times more when popped
         lifetime: powerUp ? POWERUP_LIFETIME : kind === 'jagged' ? JAGGED_LIFETIME : LIFETIME,
-        color: kind === 'black' ? '#3D4752' : kind === 'heart' ? '#FFB3C7' : kind === 'double' ? '#FFE8A3'
+        color: kind === 'black' ? '#3D4752' : kind === 'double' ? '#FFE8A3'
           : kind === 'jagged' ? '#00D1FF'
           : BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)],
         wobble: Math.random() * Math.PI * 2
@@ -147,15 +157,13 @@ export default {
 
     // how a bubble ends: 'pop' (clicked, points), 'burst' (grew too large, costs a life),
     // 'trap' (black one clicked, costs a life), 'fizzle' (black one expired, harmless),
-    // 'heal' (heart clicked, restores a life), 'bonus' (heart clicked at full lives, points),
-    // 'boost' (×2 clicked, starts the buff) or 'fade' (heart or ×2 expired, harmless)
+    // 'boost' (×2 clicked, starts the buff) or 'fade' (×2 expired, harmless)
+    var BURST = { ring: '#FD3519', ringLife: 0.5, drops: 10, speed: 0.55, dropLife: 0.6 };
     var ENDINGS = {
       pop:    { ring: '#FCFCFD', ringLife: 0.3, drops: 6,  speed: 0.3,  dropLife: 0.35 },
-      burst:  { ring: '#FD3519', ringLife: 0.5, drops: 10, speed: 0.55, dropLife: 0.6 },
-      trap:   { ring: '#FD3519', ringLife: 0.5, drops: 10, speed: 0.55, dropLife: 0.6 },
+      burst:  BURST,
+      trap:   BURST,
       fizzle: { ring: '#8494A4', ringLife: 0.4, drops: 0,  speed: 0,    dropLife: 0 },
-      heal:   { ring: '#FF7EB6', ringLife: 0.45, drops: 8, speed: 0.35, dropLife: 0.45 },
-      bonus:  { ring: '#FF7EB6', ringLife: 0.45, drops: 8, speed: 0.35, dropLife: 0.45 },
       boost:  { ring: '#F6EB0F', ringLife: 0.45, drops: 8, speed: 0.35, dropLife: 0.45 },
       fade:   { ring: null,      ringLife: 0.35, drops: 0, speed: 0,    dropLife: 0 },
       shatter: { ring: '#C9D6E3', ringLife: 0.35, drops: 10, speed: 0.45, dropLife: 0.4, scale: SHIELD_SCALE, dropColor: '#C9D6E3' }
@@ -181,13 +189,17 @@ export default {
       }
       if (how === 'pop') effects.push({
         kind: 'text', x: x, y: y, text: '+' + points, combo: combo, age: 0, life: 0.7,
-        color: b.floating ? '#C77DFF' : b.kind === 'jagged' ? '#00D1FF' : b.shielded ? '#C9D6E3' : null,
-        big: b.kind === 'jagged' || b.shielded || b.floating
+        color: b.heart && !b.healed ? '#FF7EB6' : b.floating ? '#C77DFF' : b.kind === 'jagged' ? '#00D1FF' : b.shielded ? '#C9D6E3' : null,
+        big: b.kind === 'jagged' || b.shielded || b.floating || (b.heart && !b.healed)
       });
-      if (how === 'trap') effects.push({ kind: 'text', x: x, y: y, text: '−1 ♥', color: '#FD3519', age: 0, life: 0.9 });
-      if (how === 'heal') effects.push({ kind: 'text', x: x, y: y, text: '+1 ♥', color: '#FF7EB6', age: 0, life: 0.9 });
-      if (how === 'bonus') effects.push({ kind: 'text', x: x, y: y, text: '+' + points, color: '#FF7EB6', age: 0, life: 0.9 });
-      if (how === 'boost') effects.push({ kind: 'text', x: x, y: y, text: '×2!', color: '#F6EB0F', age: 0, life: 0.9 });
+      // a heart popped while a life was missing: the life floats up above the points
+      if (how === 'pop' && b.healed) say(x, y - 0.06, '+1 ♥', '#FF7EB6');
+      if (how === 'trap') say(x, y, '−1 ♥', '#FD3519');
+      if (how === 'boost') say(x, y, '×2!', '#F6EB0F');
+    }
+
+    function say(x, y, text, color) {
+      effects.push({ kind: 'text', x: x, y: y, text: text, color: color, age: 0, life: 0.9 });
     }
 
     // all points go through here, so the ×2 buff applies to everything
@@ -202,19 +214,27 @@ export default {
       comboTimer = 0;
     }
 
-    // the lives heart icon inside a heart bubble, beating faster as the bubble is about to vanish
+    // the lives heart icon inside a bubble carrying a heart, beating faster as the bubble is about to burst;
+    // a white outline keeps it readable on every bubble color
     var heartIcon = typeof Path2D === 'function' ? new Path2D(HEART_ICON) : null;
+
+    // the pulse of a bubble's icon, faster as the bubble is about to burst
+    function beat(b, urgency) {
+      return 1 + Math.max(0, Math.sin(b.age * (8 + urgency * 14) + b.wobble)) * 0.08;
+    }
 
     function drawHeartIcon(c, b, x, y, r, urgency) {
       if (!heartIcon) return;
-      var beat = 1 + Math.max(0, Math.sin(b.age * (8 + urgency * 14) + b.wobble)) * 0.08;
-      var scale = r * 1.15 / 24 * beat; // the icon spans most of the bubble
+      var scale = r * 1.15 / 24 * beat(b, urgency); // the icon spans most of the bubble
       c.save();
       c.translate(x, y);
       c.scale(scale, scale);
       c.translate(-12, -12.5);          // center of the icon in its viewBox
       c.fillStyle = '#FD3519';
       c.fill(heartIcon);
+      c.lineWidth = 1.4;
+      c.strokeStyle = 'rgba(255,255,255,0.9)';
+      c.stroke(heartIcon);
       c.restore();
     }
 
@@ -278,13 +298,16 @@ export default {
 
     // "×2" inside a ×2 bubble, pulsing like the heart icon
     function drawDoubleIcon(c, b, x, y, r, urgency) {
-      var beat = 1 + Math.max(0, Math.sin(b.age * (8 + urgency * 14) + b.wobble)) * 0.08;
-      c.font = '700 ' + Math.round(r * 0.9 * beat) + 'px Montserrat, "Helvetica Neue", sans-serif';
+      c.font = font(700, r * 0.9 * beat(b, urgency));
       c.textAlign = 'center';
       c.textBaseline = 'middle';
       c.fillStyle = '#112F41';
       c.fillText('×2', x, y + r * 0.05);
       c.textBaseline = 'alphabetic';
+    }
+
+    function font(weight, px) {
+      return weight + ' ' + Math.round(px) + 'px Montserrat, "Helvetica Neue", sans-serif';
     }
 
     function hexToRgba(hex, alpha) {
@@ -320,7 +343,7 @@ export default {
               items.splice(i, 1);
               if (b.kind === 'black') {
                 end(b, 'fizzle');
-              } else if (b.kind === 'heart' || b.kind === 'double') {
+              } else if (b.kind === 'double') {
                 end(b, 'fade');
               } else {
                 end(b, 'burst');
@@ -357,27 +380,21 @@ export default {
               end(b, 'trap');
               breakCombo();
               api.loseLife();
-            } else if (b.kind === 'heart') {
-              // hearts are neutral for combos: they neither extend nor break them
-              // at full lives a heart is worth a bonus instead
-              if (api.lives() < api.maxLives()) {
-                end(b, 'heal');
-                api.gainLife();
-              } else {
-                end(b, 'bonus', award(HEART_BONUS));
-              }
             } else if (b.kind === 'double') {
               // neutral for combos too; a second ×2 restarts the buff instead of stacking it
               boostTimer = DOUBLE_DURATION;
               end(b, 'boost');
             } else {
               // each pop within the combo window is worth one more point: +1, +2, +3, ...
-              // and jagged bubbles multiply that by JAGGED_POINTS
+              // and the bubble's kind and modifiers multiply that
               combo += 1;
               comboTimer = COMBO_WINDOW;
+              // a heart restores a missing life; at full lives it multiplies the points instead
+              b.healed = b.heart && api.lives() < api.maxLives();
               var multiplier = (b.kind === 'jagged' ? JAGGED_POINTS : 1) * (b.shielded ? SHIELD_POINTS : 1)
-                * (b.floating ? FLOAT_POINTS : 1);
+                * (b.floating ? FLOAT_POINTS : 1) * (b.heart && !b.healed ? HEART_POINTS : 1);
               end(b, 'pop', award(combo * multiplier));
+              if (b.healed) api.gainLife();
             }
             return;
           }
@@ -420,20 +437,20 @@ export default {
             // black bubbles never burst, so they get a steady dark-red rim instead of the warning
             c.lineWidth = unit * 0.005;
             c.strokeStyle = 'rgba(253,53,25,0.55)';
-          } else if (b.kind === 'heart' || b.kind === 'double') {
+          } else if (b.kind === 'double') {
             // power-ups vanish harmlessly, so no warning either
             c.lineWidth = unit * 0.004;
-            c.strokeStyle = hexToRgba(b.color, 1);
+            c.strokeStyle = b.color;
           } else {
             // the outline turns into a warning as the bubble approaches its maximum size
             c.lineWidth = unit * (0.004 + Math.max(0, danger - 0.7) * 0.02);
-            c.strokeStyle = danger > 0.7 && Math.sin(b.age * 22) > 0 ? '#FD3519' : hexToRgba(b.color, 1);
+            c.strokeStyle = danger > 0.7 && Math.sin(b.age * 22) > 0 ? '#FD3519' : b.color;
           }
           c.stroke();
 
           if (b.shield) drawShield(c, b, x, y, r, unit);
-          if (b.kind === 'heart') drawHeartIcon(c, b, x, y, r, danger);
-          if (b.kind === 'double') drawDoubleIcon(c, b, x, y, r, danger, unit);
+          if (b.heart) drawHeartIcon(c, b, x, y, r, danger);
+          if (b.kind === 'double') drawDoubleIcon(c, b, x, y, r, danger);
 
           c.beginPath();
           c.ellipse(x - r * 0.35, y - r * 0.4, r * 0.22, r * 0.12, -0.6, 0, Math.PI * 2);
@@ -465,7 +482,7 @@ export default {
           } else if (e.kind === 'text') {
             // bigger combos float up bigger and warmer
             var scale = (e.combo ? Math.min(1.8, 1 + (e.combo - 1) * 0.12) : 1) * (e.big ? 1.3 : 1);
-            c.font = '600 ' + Math.round(unit * 0.045 * scale) + 'px Montserrat, "Helvetica Neue", sans-serif';
+            c.font = font(600, unit * 0.045 * scale);
             c.textAlign = 'center';
             c.fillStyle = e.color || comboColor(e.combo);
             c.fillText(e.text, x, y - unit * (0.03 + t * 0.06));
@@ -488,7 +505,7 @@ export default {
           c.lineWidth = unit * 0.008;
           c.strokeStyle = '#F6EB0F';
           c.stroke();
-          c.font = '700 ' + Math.round(unit * 0.045) + 'px Montserrat, "Helvetica Neue", sans-serif';
+          c.font = font(700, unit * 0.045);
           c.textAlign = 'center';
           c.textBaseline = 'middle';
           c.fillStyle = '#F6EB0F';
@@ -502,7 +519,7 @@ export default {
           var color = comboColor(combo);
           var barWidth = unit * 0.3;
           var top = unit * 0.06;
-          c.font = '600 ' + Math.round(unit * 0.05) + 'px Montserrat, "Helvetica Neue", sans-serif';
+          c.font = font(600, unit * 0.05);
           c.textAlign = 'center';
           c.fillStyle = color;
           c.fillText('Combo ×' + combo, width / 2, top + unit * 0.04);

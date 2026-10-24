@@ -5,6 +5,7 @@
  *   engine.js       game loop, score, lives, start / pause / game over screen
  *   panel.js        opening and closing (desktop, tablet, phone), events
  *   icons.js        icons shared by the engine and the games
+ *   leaderboard.js  each game's top scores (preset entries and the player's own)
  *   games/*.js      one file per game (see engine.js for what a game provides)
  *
  * Hugo bundles these modules into one fingerprinted script (layouts/partials/relax/panel.html).
@@ -12,9 +13,10 @@
 import { createEngine } from './engine.js';
 import { initPanel } from './panel.js';
 import bubbles from './games/bubbles.js';
+import rails from './games/rails.js';
 
 // the games, in the order of the ‹ › arrows: to add one, create games/<name>.js and list it here
-var games = [bubbles];
+var games = [bubbles, rails];
 
 function main() {
   var panel = document.getElementById('relax-panel');
@@ -37,6 +39,9 @@ function main() {
     overlayTitle: panel.querySelector('.relax-overlay-title'),
     overlayText: panel.querySelector('.relax-overlay-text'),
     overlayHint: panel.querySelector('.relax-overlay-hint'),
+    board: panel.querySelector('.relax-board'),
+    initialsForm: panel.querySelector('.relax-initials'),
+    initialsInput: panel.querySelector('.relax-initials input'),
     controlsEl: panel.querySelector('.relax-controls'),
     scoreEl: panel.querySelector('.relax-score strong'),
     livesEl: panel.querySelector('.relax-lives')

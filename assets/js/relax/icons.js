@@ -34,13 +34,58 @@ function tapIcon() {
     '</svg>';
 }
 
-// a game's controls for the bottom bar: mouse buttons (or a tap on touch screens) and keys
-export function controlsHtml(controls, touch) {
-  return controls.map(function (control) {
+// the four arrow keys in their keyboard layout, as a single icon (the games accept WASD as well)
+function arrowKeysIcon() {
+  var key = function (x, y, arrow) {
+    return '<rect x="' + x + '" y="' + y + '" width="7" height="7" rx="1.6"/>' +
+      '<path d="' + arrow + '" stroke="#F6EB0F"/>';
+  };
+  return '<svg class="relax-arrows" viewBox="0 0 26 18" width="28" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">' +
+    key(9.5, 1, 'M11.4 5.6l1.6-1.6 1.6 1.6') +  // up
+    key(1, 10, 'M5.6 11.9l-1.6 1.6 1.6 1.6') +  // left
+    key(9.5, 10, 'M11.4 12.4l1.6 1.6 1.6-1.6') + // down
+    key(18, 10, 'M20.4 11.9l1.6 1.6-1.6 1.6') + // right
+    '</svg>';
+}
+
+// gestures on touch screens (24x24, like the tap): a finger (a yellow dot) swiping any of four ways,
+// and two fingers held down
+function gestureIcon(name) {
+  var body;
+  if (name === 'two') {
+    body = '<path d="M5.2 8.4a4 4 0 0 1 6.6 0M12.2 8.4a4 4 0 0 1 6.6 0" stroke="#F6EB0F"/>' +
+      '<circle cx="8.5" cy="13" r="2.6"/><circle cx="15.5" cy="13" r="2.6"/>';
+  } else {
+    var arrows = '<path d="M12 3v5M9.6 5.4L12 3l2.4 2.4"/>';
+    body = [0, 90, 180, 270].map(function (turn) {
+      return '<g transform="rotate(' + turn + ' 12 12)">' + arrows + '</g>';
+    }).join('') + '<circle cx="12" cy="12" r="2.4" fill="#F6EB0F" stroke="none"/>';
+  }
+  return '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' +
+    body + '</svg>';
+}
+
+// a game's touch control: a hint, an icon and its label (icon: 'hold' or by default a tap, 'two'
+// fingers or 'swipe'); the game reads the gestures itself
+function touchControlHtml(control) {
+  var icon = control.icon === 'two' || control.icon === 'swipe' ? gestureIcon(control.icon) : tapIcon();
+  return '<span class="relax-control relax-hint" title="' + (control.title || control.label) + '">' + icon +
+    '<span>' + control.label + '</span></span>';
+}
+
+// a game's controls for the bottom bar: on touch screens its touch controls, if it has any; else mouse
+// buttons (a tap on touch screens), arrow keys and keys
+export function controlsHtml(def, touch) {
+  if (touch && def.touchControls) return def.touchControls.map(touchControlHtml).join('');
+  return def.controls.map(function (control) {
     var icon = control.type === 'mouse'
       ? (touch ? tapIcon() : mouseIcon(control.button))
-      : control.keys.map(function (key) { return '<kbd>' + key + '</kbd>'; }).join('');
-    return '<span class="relax-control" title="' + control.label + '">' + icon + '<span>' + control.label + '</span></span>';
+      : control.type === 'arrows'
+        ? arrowKeysIcon()
+        : control.keys.map(function (key) { return '<kbd>' + key + '</kbd>'; }).join('');
+    var label = control.label ? '<span>' + control.label + '</span>' : '';
+    var title = control.title || control.label || '';
+    return '<span class="relax-control" title="' + title + '">' + icon + label + '</span>';
   }).join('');
 }
 

@@ -1,18 +1,29 @@
 /*
  * Engine: runs one game at a time on the panel's stage, and keeps the score, the lives and the
- * start / pause / game over screen.
+ * start / pause / game over screen, with the game's leaderboard.
  *
- * A game is a definition { id, title, description, controls, lives, create(api) }.
+ * A game is a definition { id, title, description, controls, lives, leaderboard, create(api) },
+ * where leaderboard is the preset top scores: [{ name: 'ABC', score: 1000 }, ...], and an optional
+ * hideLives: true hides the hearts in the stage's corner (for a game that shows its lives itself), and an
+ * optional maxLives: how many lives can be gained back up to (by default, the starting lives), and an
+ * optional touchControls: the bottom bar's controls on touch screens, in place of controls (icons.js),
+ * and an optional touchDescription: the start screen's text on touch screens, in place of description.
  * create(api) returns an instance with:
  *   reset()                      start a new run
  *   update(dt, time, active)     advance by dt seconds; when active is false only finish animations
  *   render(ctx, width, height)   draw the current state (CSS pixels)
- *   pointerDown(x, y, button, pointerType)  optional: mouse/pen/touch input on the stage
- *   keyDown(key)                 optional: keyboard input while playing
+ *   pointerDown(x, y, button, pointerType, id)  optional: mouse/pen/touch input on the stage; id tells
+ *                                the pointers apart (a finger each), for:
+ *   pointerMove(id, x, y)        optional: a pointer pressed on the stage moved
+ *   pointerUp(id)                optional: and was lifted (or the browser took it over)
+ *   keyDown(key)                 optional: a key pressed while playing; return true if the game uses it
+ *   keyUp(key)                   optional: a key released
+ *   blur()                       optional: forget held keys (pause, or the window lost focus)
  * and can call api.addScore(n), api.loseLife(), api.gainLife(), api.score(), api.lives(), api.maxLives()
  * and api.size().
  */
 import { controlsHtml, renderLives } from './icons.js';
+import { createLeaderboard, normalizeInitials } from './leaderboard.js';
 
 var OVERLAY_GUARD = 800; // ms the game-over button stays inactive, against clicks meant for bubbles
 
@@ -27,7 +38,8 @@ export function createEngine(ui, games, options) {
   var usingTouch = options.touch;
   var guardTimer = 0;
 
-  var current = null;    // { def, instance }
+  var current = null;    // { def, instance, board }
+  var pending = null;    // a high score waiting for the player's initials
   var index = 0;
   var status = 'ready';  // ready | playing | paused | over
   var score = 0;
@@ -38,6 +50,10 @@ export function createEngine(ui, games, options) {
   var width = 0;
   var height = 0;
 
+  function maxLives() {
+    return current.def.maxLives || current.def.lives;
+  }
+
   var api = {
     addScore: function (n) {
       score += n;
@@ -46,16 +62,16 @@ export function createEngine(ui, games, options) {
     loseLife: function () {
       if (status !== 'playing') return;
       lives = Math.max(0, lives - 1);
-      renderLives(ui.livesEl, lives, current.def.lives);
+      showLives();
       ui.stage.classList.remove('is-hit');
       void ui.stage.offsetWidth; // restart the hit animation
       ui.stage.classList.add('is-hit');
       if (lives === 0) gameOver();
     },
     gainLife: function () {
-      if (status !== 'playing' || lives >= current.def.lives) return;
+      if (status !== 'playing' || lives >= maxLives()) return;
       lives += 1;
-      renderLives(ui.livesEl, lives, current.def.lives);
+      showLives();
     },
     lives: function () {
       return lives;
@@ -64,50 +80,91 @@ export function createEngine(ui, games, options) {
       return score;
     },
     maxLives: function () {
-      return current.def.lives;
+      return maxLives();
     },
     size: function () {
       return { width: width, height: height };
     }
   };
 
-  function bestScore() {
-    return parseInt(storage.get('relax.best.' + current.def.id), 10) || 0;
+  function showLives() {
+    renderLives(ui.livesEl, lives, maxLives());
   }
 
+  // a fresh run of the current game: the lives are set before the reset, so a game may build itself
+  // from them
+  function newRun() {
+    score = 0;
+    lives = current.def.lives;
+    time = 0;
+    current.instance.reset();
+    ui.scoreEl.textContent = '0';
+    showLives();
+  }
+
+  function lastInitials() {
+    return normalizeInitials(storage.get('relax.initials'));
+  }
+
+  function formatScore(value) {
+    return value.toLocaleString('en-US');
+  }
+
+  // the overlay starts plain: the leaderboard and the initials form are added by the caller
   function showOverlay(title, text, hint) {
     ui.overlayTitle.textContent = title;
     ui.overlayText.textContent = text;
     ui.overlayHint.textContent = hint;
+    ui.board.hidden = true;
+    ui.initialsForm.hidden = true;
     clearTimeout(guardTimer);
     ui.overlayHint.disabled = false;
     ui.overlay.hidden = false;
   }
 
+  function showBoard(highlight) {
+    ui.board.innerHTML = current.board.html(highlight);
+    ui.board.hidden = false;
+  }
+
+  // record the high score waiting for initials (also when the player moves on without typing them)
+  function savePending(initials) {
+    if (pending === null) return null;
+    var entry = current.board.add(initials || lastInitials() || 'YOU', pending);
+    storage.set('relax.initials', entry.name);
+    pending = null;
+    return entry;
+  }
+
+  function saveInitials(raw) {
+    var entry = savePending(normalizeInitials(raw));
+    if (!entry) return;
+    ui.initialsForm.hidden = true;
+    ui.overlayText.textContent = 'You scored ' + formatScore(entry.score) + '. Saved as ' + entry.name + '.';
+    showBoard(entry);
+  }
+
+  function description() {
+    return (usingTouch && current.def.touchDescription) || current.def.description;
+  }
+
   function load(i) {
+    if (current) savePending();
     index = (i + games.length) % games.length;
     var def = games[index];
-    current = { def: def, instance: def.create(api) };
-    current.instance.reset();
+    current = { def: def, instance: def.create(api), board: createLeaderboard(storage, def) };
     status = 'ready';
-    score = 0;
-    lives = def.lives;
-    time = 0;
+    newRun();
     ui.titleEl.textContent = def.title;
-    ui.controlsEl.innerHTML = controlsHtml(def.controls, usingTouch);
-    ui.scoreEl.textContent = '0';
-    renderLives(ui.livesEl, lives, def.lives);
-    var best = bestScore();
-    showOverlay(def.title, def.description + (best ? ' Best: ' + best + '.' : ''), 'Start');
+    ui.controlsEl.innerHTML = controlsHtml(def, usingTouch);
+    ui.livesEl.hidden = !!def.hideLives; // a game can show its lives its own way
+    showOverlay(def.title, description(), 'Start');
+    showBoard();
   }
 
   function start() {
-    current.instance.reset();
-    score = 0;
-    lives = current.def.lives;
-    time = 0;
-    ui.scoreEl.textContent = '0';
-    renderLives(ui.livesEl, lives, current.def.lives);
+    savePending();
+    newRun();
     status = 'playing';
     ui.overlay.hidden = true;
     ui.canvas.focus({ preventScroll: true });
@@ -115,8 +172,9 @@ export function createEngine(ui, games, options) {
 
   function pause() {
     if (status !== 'playing') return;
+    blur();
     status = 'paused';
-    showOverlay('Paused', 'Score: ' + score + '.', 'Resume');
+    showOverlay('Paused', 'Score: ' + formatScore(score) + '.', 'Resume');
   }
 
   function resume() {
@@ -127,17 +185,29 @@ export function createEngine(ui, games, options) {
 
   function gameOver() {
     status = 'over';
-    var best = bestScore();
-    if (score > best) {
-      storage.set('relax.best.' + current.def.id, String(score));
-      showOverlay('New best!', 'You scored ' + score + '.', 'Play again');
+    if (current.board.qualifies(score)) {
+      // a top score: arcade style, ask for the player's initials
+      pending = score;
+      showOverlay('New high score!', 'You scored ' + formatScore(score) + '. Your initials:', 'Play again');
+      ui.initialsInput.value = lastInitials();
+      ui.initialsForm.hidden = false;
     } else {
-      showOverlay('Game over', 'You scored ' + score + '. Best: ' + best + '.', 'Play again');
+      // any other score is recorded quietly, so the player's best always shows on the board
+      var entry = score > 0 ? current.board.add(lastInitials() || 'YOU', score) : null;
+      showOverlay('Game over', 'You scored ' + formatScore(score) + '.', 'Play again');
+      showBoard(entry);
     }
-    // the game usually ends mid-click: keep the button inactive for a moment
+    // the game usually ends mid-click or mid-keypress: keep the button inactive for a moment,
+    // and only then let the initials field take the keyboard
     ui.overlayHint.disabled = true;
     clearTimeout(guardTimer);
-    guardTimer = setTimeout(function () { ui.overlayHint.disabled = false; }, OVERLAY_GUARD);
+    guardTimer = setTimeout(function () {
+      ui.overlayHint.disabled = false;
+      if (!ui.initialsForm.hidden) {
+        ui.initialsInput.focus({ preventScroll: true });
+        ui.initialsInput.select();
+      }
+    }, OVERLAY_GUARD);
   }
 
   function resize() {
@@ -180,18 +250,37 @@ export function createEngine(ui, games, options) {
   function setTouch(touch) {
     if (touch === usingTouch) return;
     usingTouch = touch;
-    ui.controlsEl.innerHTML = controlsHtml(current.def.controls, usingTouch);
+    ui.controlsEl.innerHTML = controlsHtml(current.def, usingTouch);
+    if (status === 'ready') ui.overlayText.textContent = description();
   }
 
   // input on the stage: returns whether the game used it
-  function pointerDown(x, y, button, pointerType) {
+  function pointerDown(x, y, button, pointerType, id) {
     if (status !== 'playing' || !current.instance.pointerDown) return false;
-    current.instance.pointerDown(x, y, button, pointerType);
+    current.instance.pointerDown(x, y, button, pointerType, id);
     return true;
+  }
+
+  function pointerMove(id, x, y) {
+    if (status === 'playing' && current.instance.pointerMove) current.instance.pointerMove(id, x, y);
+  }
+
+  // like key releases, lifted pointers always reach the game
+  function pointerUp(id) {
+    if (current.instance.pointerUp) current.instance.pointerUp(id);
   }
 
   function keyDown(key) {
     return status === 'playing' && !!current.instance.keyDown && !!current.instance.keyDown(key);
+  }
+
+  // releases always reach the game, so no key stays held across a pause
+  function keyUp(key) {
+    if (current.instance.keyUp) current.instance.keyUp(key);
+  }
+
+  function blur() {
+    if (current.instance.blur) current.instance.blur();
   }
 
   return {
@@ -204,7 +293,12 @@ export function createEngine(ui, games, options) {
     halt: halt,
     setTouch: setTouch,
     pointerDown: pointerDown,
+    pointerMove: pointerMove,
+    pointerUp: pointerUp,
     keyDown: keyDown,
+    saveInitials: saveInitials,
+    keyUp: keyUp,
+    blur: blur,
     status: function () { return status; },
     index: function () { return index; },
     gameCount: games.length

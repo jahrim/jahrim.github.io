@@ -4,6 +4,8 @@
  * full screen on phones, where the sidebar is the hamburger menu.
  */
 
+import { normalizeInitials } from './leaderboard.js';
+
 export function initPanel(ui, engine) {
   var phone = window.matchMedia('(max-width: 767px)'); // the theme's smartphone layout
   var lastOpener = null;
@@ -72,10 +74,15 @@ export function initPanel(ui, engine) {
   });
   ui.closeButton.addEventListener('click', close);
   ui.restartButton.addEventListener('click', engine.start);
-  // leave the current run and go back to the game's start screen, where games can be switched
-  ui.menuButton.addEventListener('click', function () { engine.load(engine.index()); ui.overlayHint.focus(); });
-  ui.prevButton.addEventListener('click', function () { engine.load(engine.index() - 1); ui.overlayHint.focus(); });
-  ui.nextButton.addEventListener('click', function () { engine.load(engine.index() + 1); ui.overlayHint.focus(); });
+  // a game's start screen: this game's (leaving the current run, where games can be switched),
+  // or the previous or next game's
+  function go(offset) {
+    engine.load(engine.index() + offset);
+    ui.overlayHint.focus();
+  }
+  ui.menuButton.addEventListener('click', function () { go(0); });
+  ui.prevButton.addEventListener('click', function () { go(-1); });
+  ui.nextButton.addEventListener('click', function () { go(1); });
   ui.prevButton.disabled = ui.nextButton.disabled = engine.gameCount < 2;
 
   // only the overlay's button starts or resumes: clicks elsewhere on the overlay are ignored
@@ -84,18 +91,39 @@ export function initPanel(ui, engine) {
     else engine.start();
   });
 
+  // arcade-style initials: letters only, capitals, at most 3; Enter or Save records them
+  ui.initialsInput.addEventListener('input', function () {
+    var clean = normalizeInitials(ui.initialsInput.value);
+    if (clean !== ui.initialsInput.value) ui.initialsInput.value = clean;
+  });
+  ui.initialsForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    engine.saveInitials(ui.initialsInput.value);
+    ui.overlayHint.focus({ preventScroll: true });
+  });
+
   // follow the input actually in use for the controls icon (touch or mouse)
   document.addEventListener('pointerdown', function (event) {
     if (event.pointerType === '') return;
     engine.setTouch(event.pointerType === 'touch' || event.pointerType === 'pen');
   }, true);
 
+  // pointers on the stage, each finger on its own (a game can use several at once): captured, so
+  // they are followed until lifted even when they slide off the stage
   ui.canvas.tabIndex = -1;
   ui.canvas.addEventListener('pointerdown', function (event) {
     var rect = ui.canvas.getBoundingClientRect();
-    if (engine.pointerDown(event.clientX - rect.left, event.clientY - rect.top, event.button, event.pointerType)) {
+    if (engine.pointerDown(event.clientX - rect.left, event.clientY - rect.top, event.button, event.pointerType, event.pointerId)) {
       event.preventDefault();
+      ui.canvas.setPointerCapture(event.pointerId);
     }
+  });
+  ui.canvas.addEventListener('pointermove', function (event) {
+    var rect = ui.canvas.getBoundingClientRect();
+    engine.pointerMove(event.pointerId, event.clientX - rect.left, event.clientY - rect.top);
+  });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (type) {
+    ui.canvas.addEventListener(type, function (event) { engine.pointerUp(event.pointerId); });
   });
   ui.canvas.addEventListener('contextmenu', function (event) { event.preventDefault(); });
 
@@ -107,6 +135,12 @@ export function initPanel(ui, engine) {
       event.preventDefault();
     }
   });
+
+  document.addEventListener('keyup', function (event) {
+    if (isOpen()) engine.keyUp(event.key);
+  });
+  // keys released while the window is in the background never arrive: forget them
+  window.addEventListener('blur', function () { engine.blur(); });
 
   // pause when the page is hidden, and close when switching between the phone and the larger layouts
   document.addEventListener('visibilitychange', function () { if (document.hidden) engine.pause(); });

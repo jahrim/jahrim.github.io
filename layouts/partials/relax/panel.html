@@ -1,4 +1,8 @@
-<!-- mini games panel: slides over the sidebar when "Relax" is pressed (driven by static/js/relax.js) -->
+<!-- mini games panel: opens when "Relax" is pressed (driven by the modules in assets/js/relax/) -->
+{{/* its styles (assets/css/relax.css), fingerprinted like the script below, so a browser or a cache
+     never pairs this markup with an older copy of them */}}
+{{ $relaxCSS := resources.Get "css/relax.css" | fingerprint }}
+<link rel="stylesheet" href="{{ $relaxCSS.RelPermalink }}" integrity="{{ $relaxCSS.Data.Integrity }}">
 <aside id="relax-panel" class="relax-panel" aria-label="Relax: mini games" aria-hidden="true">
   <!-- three equal zones keep the title centered: selection, restart | ‹ title › | exit -->
   <div class="relax-topbar">
@@ -29,18 +33,26 @@
 
   <div class="relax-stage">
     <canvas class="relax-canvas"></canvas>
+    <!-- lives, in the stage's top right corner (a game can show its lives its own way instead) -->
+    <div class="relax-lives" role="img"></div>
     <!-- start / pause / game over screen: only its button acts, so clicks aimed at bubbles are ignored -->
     <div class="relax-overlay">
       <span class="relax-overlay-title"></span>
       <span class="relax-overlay-text"></span>
+      <form class="relax-initials" hidden>
+        <input type="text" maxlength="3" autocomplete="off" autocapitalize="characters" spellcheck="false"
+               placeholder="AAA" aria-label="Your initials">
+        <button type="submit">Save</button>
+      </form>
       <button type="button" class="relax-overlay-hint"></button>
+      <ol class="relax-board" aria-label="Leaderboard" hidden></ol>
     </div>
   </div>
 
+  <!-- controls on the left (room for longer instructions), score on the right -->
   <div class="relax-bottombar">
     <div class="relax-controls"></div>
     <div class="relax-score">Score <strong>0</strong></div>
-    <div class="relax-lives" role="img"></div>
   </div>
 </aside>
 {{/* the game modules (assets/js/relax/) bundled into one script: minified in production, and

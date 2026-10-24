@@ -1,5 +1,4 @@
 /* Site-wide additions to the theme (loaded through params.assets.customCSS). */
-@import url("relax.css");
 
 /* Phone header: make the theme's thin hamburger a clearly tappable button */
 @media (max-width: 767px) {
