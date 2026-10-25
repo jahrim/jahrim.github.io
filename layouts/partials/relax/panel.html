@@ -3,7 +3,7 @@
      never pairs this markup with an older copy of them */}}
 {{ $relaxCSS := resources.Get "css/relax.css" | fingerprint }}
 <link rel="stylesheet" href="{{ $relaxCSS.RelPermalink }}" integrity="{{ $relaxCSS.Data.Integrity }}">
-<aside id="relax-panel" class="relax-panel" aria-label="Relax: mini games" aria-hidden="true">
+<aside id="relax-panel" class="relax-panel" aria-label="Take a break: mini games" aria-hidden="true">
   <!-- three equal zones keep the title centered: selection, restart | ‹ title › | exit -->
   <div class="relax-topbar">
     <div class="relax-topbar-side">
