@@ -12,5 +12,5 @@ Programming Languages. I am currently pursuing a [PhD in Computer Science](https
 
 This is my personal website. Here you can find more information [about me](/about)
 and [about my projects](/portfolio), or
-{{<email at="website@jahrim.com" text="contact me">}} directly for
+{{<email at="contact@jahrim.com" text="contact me">}} directly for
 any specific questions.

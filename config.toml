@@ -62,7 +62,7 @@ gitlab = "https://gitlab.com/Jahrim"
 # keybase = "https://keybase.io/"
 
 [params.contact]
-email = "website@jahrim.com"
+email = "contact@jahrim.com"
 text = "Contact" # text of the contact link in the sidebar. If email params.contact.email is defined
 
 [menu]
